@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 font-sans text-slate-800 antialiased">
+
+  <!-- Background decorative elements -->
+  <div class="fixed inset-0 overflow-hidden pointer-events-none">
+    <div class="absolute -top-40 -right-40 w-96 h-96 bg-blue-100/40 rounded-full blur-3xl"></div>
+    <div class="absolute top-1/2 -left-40 w-80 h-80 bg-indigo-100/30 rounded-full blur-3xl"></div>
+    <div class="absolute -bottom-20 right-1/3 w-72 h-72 bg-sky-100/30 rounded-full blur-3xl"></div>
+  </div>
+
+  <div class="relative z-10 max-w-2xl mx-auto px-4 py-10 sm:py-16">
+
+    <!-- Header -->
+    <header class="text-center mb-10">
+      <div class="inline-flex items-center gap-2.5 mb-3">
+        <div class="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center shadow-md shadow-blue-600/20">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/>
+          </svg>
+        </div>
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Weather</h1>
+      </div>
+      <p class="text-slate-500 text-sm">Search any city to see current conditions</p>
+    </header>
+
+    <!-- Search -->
+    <div class="mb-8">
+      <form id="searchForm" class="relative">
+        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+          <svg class="w-4.5 h-4.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+        </div>
+        <input
+          type="text"
+          id="cityInput"
+          placeholder="Search for a city..."
+          autocomplete="off"
+          class="w-full pl-11 pr-28 py-3.5 bg-white border border-slate-200 rounded-2xl text-sm text-slate-800 placeholder-slate-400 shadow-sm shadow-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
+        >
+        <button
+          type="submit"
+          class="absolute right-2 top-1/2 -translate-y-1/2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl shadow-sm shadow-blue-600/20 transition-colors active:scale-[0.97]"
+        >
+          Search
+        </button>
+      </form>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loadingState" class="hidden">
+      <div class="bg-white/70 backdrop-blur-sm border border-slate-200/60 rounded-2xl p-12 text-center shadow-sm">
+        <div class="inline-flex items-center gap-3 text-slate-500">
+          <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          <span class="text-sm font-medium">Fetching weather data...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div id="errorState" class="hidden">
+      <div class="bg-white/70 backdrop-blur-sm border border-red-200/60 rounded-2xl p-8 text-center shadow-sm">
+        <div class="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>
+          </svg>
+        </div>
+        <p id="errorMessage" class="text-sm text-red-600 font-medium mb-1">City not found</p>
+        <p class="text-xs text-slate-400">Please check the spelling and try again</p>
+      </div>
+    </div>
+
+    <!-- Empty / Initial State -->
+    <div id="emptyState">
+      <div class="bg-white/60 backdrop-blur-sm border border-slate-200/50 rounded-2xl p-12 text-center shadow-sm">
+        <div class="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <svg class="w-7 h-7 text-blue-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/>
+          </svg>
+        </div>
+        <p class="text-sm font-medium text-slate-600 mb-1">Enter a city name</p>
+        <p class="text-xs text-slate-400">Try "London", "Tokyo", or "New York"</p>
+      </div>
+    </div>
+
+    <!-- Weather Results -->
+    <div id="weatherResult" class="hidden space-y-4">
+
+      <!-- Main Weather Card -->
+      <div class="bg-white/80 backdrop-blur-sm border border-slate-200/60 rounded-2xl p-6 sm:p-8 shadow-sm">
+        <div class="flex items-start justify-between mb-6">
+          <div>
+            <h2 id="cityName" class="text-xl font-bold text-slate-900 tracking-tight">London</h2>
+            <p id="countryName" class="text-sm text-slate-400 mt-0.5">United Kingdom</p>
+          </div>
+          <div id="weatherIconContainer" class="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center -mt-1">
+            <img id="weatherIcon" src="" alt="Weather icon" class="w-12 h-12">
+          </div>
+        </div>
+
+        <div class="flex items-end gap-3 mb-2">
+          <span id="temperature" class="text-5xl sm:text-6xl font-bold text-slate-900 tracking-tighter leading-none">21°</span>
+          <div class="pb-2">
+            <span id="feelsLike" class="text-xs text-slate-400 block">Feels like <span id="feelsLikeValue">19°</span></span>
+          </div>
+        </div>
+        <p id="weatherDescription" class="text-sm font-medium text-blue-600 capitalize">Partly cloudy</p>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+
+        <!-- Humidity -->
+        <div class="bg-white/70 backdrop-blur-sm border border-slate-200/50 rounded-2xl p-4 shadow-sm">
+          <div class="flex items-center gap-2 mb-2.5">
+            <div class="w-7 h-7 bg-sky-50 rounded-lg flex items-center justify-center">
+              <svg class="w-3.5 h-3.5 text-sky-500" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/>
+              </svg>
+            </div>
+            <span class="text-xs text-slate-400 font-medium">Humidity</span>
+          </div>
+          <p id="humidity" class="text-lg font-bold text-slate-800">65%</p>
+        </div>
+
+        <!-- Wind -->
+        <div class="bg-white/70 backdrop-blur-sm border border-slate-200/50 rounded-2xl p-4 shadow-sm">
+          <div class="flex items-center gap-2 mb-2.5">
+            <div class="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center">
+              <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 19a2 2 0 002 2h1a2 2 0 002-2V7a2 2 0 00-2-2H8a2 2 0 00-2 2m0 12V7m0 12h12M6 7h12a2 2 0 012 2v5a2 2 0 01-2 2H6"/>
+              </svg>
+            </div>
+            <span class="text-xs text-slate-400 font-medium">Wind</span>
+          </div>
+          <p id="windSpeed" class="text-lg font-bold text-slate-800">5.4 m/s</p>
+        </div>
+
+        <!-- Pressure -->
+        <div class="bg-white/70 backdrop-blur-sm border border-slate-200/50 rounded-2xl p-4 shadow-sm">
+          <div class="flex items-center gap-2 mb-2.5">
+            <div class="w-7 h-7 bg-violet-50 rounded-lg flex items-center justify-center">
+              <svg class="w-3.5 h-3.5 text-violet-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18M3 8h18M3 12h12M3 16h6"/>
+              </svg>
+            </div>
+            <span class="text-xs text-slate-400 font-medium">Pressure</span>
+          </div>
+          <p id="pressure" class="text-lg font-bold text-slate-800">1013 hPa</p>
+        </div>
+
+        <!-- Visibility -->
+        <div class="bg-white/70 backdrop-blur-sm border border-slate-200/50 rounded-2xl p-4 shadow-sm">
+          <div class="flex items-center gap-2 mb-2.5">
+            <div class="w-7 h-7 bg-amber-50 rounded-lg flex items-center justify-center">
+              <svg class="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>
+            </div>
+            <span class="text-xs text-slate-400 font-medium">Visibility</span>
+          </div>
+          <p id="visibility" class="text-lg font-bold text-slate-800">10 km</p>
+        </div>
+      </div>
+
+      <!-- Sunrise / Sunset -->
+      <div class="bg-white/70 backdrop-blur-sm border border-slate-200/50 rounded-2xl p-5 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-orange-50 rounded-xl flex items-center justify-center">
+              <svg class="w-4 h-4 text-orange-400" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2v3m0 14v3M4.93 4.93l2.12 2.12m9.9 9.9l2.12 2.12M2 12h3m14 0h3M4.93 19.07l2.12-2.12m9.9-9.9l2.12-2.12M12 8a4 4 0 100 8 4 4 0 000-8z"/>
+              </svg>
+            </div>
+            <div>
+              <p class="text-xs text-slate-400 font-medium">Sunrise</p>
+              <p id="sunrise" class="text-sm font-bold text-slate-800">6:42 AM</p>
+            </div>
+          </div>
+          <div class="w-px h-8 bg-slate-200"></div>
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-indigo-50 rounded-xl flex items-center justify-center">
+              <svg class="w-4 h-4 text-indigo-400" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z"/>
+              </svg>
+            </div>
+            <div>
+              <p class="text-xs text-slate-400 font-medium">Sunset</p>
+              <p id="sunset" class="text-sm font-bold text-slate-800">8:15 PM</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timestamp -->
+      <p id="lastUpdated" class="text-center text-xs text-slate-400 pt-1">Last updated just now</p>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center mt-12 text-xs text-slate-400">
+      Data provided by <a href="https://openweathermap.org" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-600 transition-colors">OpenWeatherMap</a>
+    </footer>
+  </div>
+
+  <script>
+    // =========================================================
+    // Weather Dashboard — Beginner-Friendly JavaScript
+    // =========================================================
+
+    // OpenWeatherMap free API key (demo key — replace with your own for production)
+    const API_KEY = '453279c4a022aa9362aec315d9c4a627';
+    const BASE_URL = 'https://api.openweathermap.org/data/2.5/weather';
+
+    // Country code to full name mapping (common ones)
+    const COUNTRY_NAMES = {
+      AF:'Afghanistan',AL:'Albania',DZ:'Algeria',AD:'Andorra',AO:'Angola',AR:'Argentina',
+      AM:'Armenia',AU:'Australia',AT:'Austria',AZ:'Azerbaijan',BS:'Bahamas',BH:'Bahrain',
+      BD:'Bangladesh',BB:'Barbados',BY:'Belarus',BE:'Belgium',BZ:'Belize',BJ:'Benin',
+      BT:'Bhutan',BO:'Bolivia',BA:'Bosnia and Herzegovina',BW:'Botswana',BR:'Brazil',
+      BN:'Brunei',BG:'Bulgaria',BF:'Burkina Faso',BI:'Burundi',KH:'Cambodia',CM:'Cameroon',
+      CA:'Canada',CL:'Chile',CN:'China',CO:'Colombia',CG:'Congo',CR:'Costa Rica',
+      HR:'Croatia',CU:'Cuba',CY:'Cyprus',CZ:'Czech Republic',DK:'Denmark',DJ:'Djibouti',
+      DO:'Dominican Republic',EC:'Ecuador',EG:'Egypt',SV:'El Salvador',EE:'Estonia',
+      ET:'Ethiopia',FI:'Finland',FR:'France',GA:'Gabon',GM:'Gambia',GE:'Georgia',
+      DE:'Germany',GH:'Ghana',GR:'Greece',GT:'Guatemala',GN:'Guinea',GY:'Guyana',
+      HT:'Haiti',HN:'Honduras',HK:'Hong Kong',HU:'Hungary',IS:'Iceland',IN:'India',
+      ID:'Indonesia',IR:'Iran',IQ:'Iraq',IE:'Ireland',IL:'Israel',IT:'Italy',JM:'Jamaica',
+      JP:'Japan',JO:'Jordan',KZ:'Kazakhstan',KE:'Kenya',KW:'Kuwait',KG:'Kyrgyzstan',
+      LA:'Laos',LV:'Latvia',LB:'Lebanon',LY:'Libya',LT:'Lithuania',LU:'Luxembourg',
+      MO:'Macao',MG:'Madagascar',MW:'Malawi',MY:'Malaysia',MV:'Maldives',ML:'Mali',
+      MT:'Malta',MX:'Mexico',MD:'Moldova',MC:'Monaco',MN:'Mongolia',ME:'Montenegro',
+      MA:'Morocco',MZ:'Mozambique',MM:'Myanmar',NA:'Namibia',NP:'Nepal',NL:'Netherlands',
+      NZ:'New Zealand',NI:'Nicaragua',NE:'Niger',NG:'Nigeria',KP:'North Korea',
+      MK:'North Macedonia',NO:'Norway',OM:'Oman',PK:'Pakistan',PA:'Panama',PG:'Papua New Guinea',
+      PY:'Paraguay',PE:'Peru',PH:'Philippines',PL:'Poland',PT:'Portugal',QA:'Qatar',
+      RO:'Romania',RU:'Russia',RW:'Rwanda',SA:'Saudi Arabia',SN:'Senegal',RS:'Serbia',
+      SG:'Singapore',SK:'Slovakia',SI:'Slovenia',SO:'Somalia',ZA:'South Africa',
+      KR:'South Korea',ES:'Spain',LK:'Sri Lanka',SD:'Sudan',SE:'Sweden',CH:'Switzerland',
+      SY:'Syria',TW:'Taiwan',TJ:'Tajikistan',TZ:'Tanzania',TH:'Thailand',TG:'Togo',
+      TN:'Tunisia',TR:'Turkey',TM:'Turkmenistan',UG:'Uganda',UA:'Ukraine',
+      AE:'United Arab Emirates',GB:'United Kingdom',US:'United States',UY:'Uruguay',
+      UZ:'Uzbekistan',VE:'Venezuela',VN:'Vietnam',YE:'Yemen',ZM:'Zambia',ZW:'Zimbabwe'
+    };
+
+    // Grab DOM elements
+    const searchForm     = document.getElementById('searchForm');
+    const cityInput      = document.getElementById('cityInput');
+    const loadingState   = document.getElementById('loadingState');
+    const errorState     = document.getElementById('errorState');
+    const errorMessage   = document.getElementById('errorMessage');
+    const emptyState     = document.getElementById('emptyState');
+    const weatherResult  = document.getElementById('weatherResult');
+
+    // ---- UI State Helpers ----
+
+    function showOnly(element) {
+      // Hide all states, then show the requested one
+      [loadingState, errorState, emptyState, weatherResult].forEach(el => {
+        el.classList.add('hidden');
+      });
+      element.classList.remove('hidden');
+    }
+
+    // ---- Format Helpers ----
+
+    function formatTime(unixTimestamp, timezoneOffset) {
+      // Convert UNIX timestamp + timezone offset to readable time
+      const date = new Date((unixTimestamp + timezoneOffset) * 1000);
+      const hours = date.getUTCHours();
+      const minutes = date.getUTCMinutes();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const displayHours = hours % 12 || 12;
+      const displayMinutes = minutes.toString().padStart(2, '0');
+      return `${displayHours}:${displayMinutes} ${ampm}`;
+    }
+
+    function getCountryName(code) {
+      return COUNTRY_NAMES[code] || code;
+    }
+
+    // ---- Main Fetch Function ----
+
+    async function fetchWeather(city) {
+      // 1. Show loading spinner
+      showOnly(loadingState);
+
+      try {
+        // 2. Build API URL
+        const url = `${BASE_URL}?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric`;
+
+        // 3. Fetch data from OpenWeatherMap
+        const response = await fetch(url);
+
+        // 4. Handle errors (city not found, etc.)
+        if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error('City not found. Please check the spelling.');
+          } else if (response.status === 401) {
+            throw new Error('Invalid API key. Please update your API key.');
+          } else {
+            throw new Error('Something went wrong. Please try again.');
+          }
+        }
+
+        // 5. Parse JSON
+        const data = await response.json();
+
+        // 6. Display weather data
+        displayWeather(data);
+
+      } catch (error) {
+        // Show error message
+        errorMessage.textContent = error.message;
+        showOnly(errorState);
+      }
+    }
+
+    // ---- Display Weather Data ----
+
+    function displayWeather(data) {
+      // City and country
+      document.getElementById('cityName').textContent = data.name;
+      document.getElementById('countryName').textContent = getCountryName(data.sys.country);
+
+      // Temperature
+      const temp = Math.round(data.main.temp);
+      document.getElementById('temperature').textContent = `${temp}°`;
+
+      // Feels like
+      const feelsLike = Math.round(data.main.feels_like);
+      document.getElementById('feelsLikeValue').textContent = `${feelsLike}°`;
+
+      // Weather description
+      const description = data.weather[0].description;
+      document.getElementById('weatherDescription').textContent = description;
+
+      // Weather icon
+      const iconCode = data.weather[0].icon;
+      const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
+      document.getElementById('weatherIcon').src = iconUrl;
+      document.getElementById('weatherIcon').alt = description;
+
+      // Change icon container bg based on weather
+      const iconContainer = document.getElementById('weatherIconContainer');
+      const mainWeather = data.weather[0].main.toLowerCase();
+      const iconBgMap = {
+        clear: 'bg-amber-50',
+        clouds: 'bg-slate-100',
+        rain: 'bg-blue-50',
+        drizzle: 'bg-blue-50',
+        thunderstorm: 'bg-violet-50',
+        snow: 'bg-sky-50',
+        mist: 'bg-slate-50',
+        haze: 'bg-slate-50',
+        fog: 'bg-slate-50',
+      };
+      // Reset, then apply
+      iconContainer.className = 'w-16 h-16 rounded-2xl flex items-center justify-center -mt-1 ' + (iconBgMap[mainWeather] || 'bg-blue-50');
+
+      // Stats
+      document.getElementById('humidity').textContent = `${data.main.humidity}%`;
+      document.getElementById('windSpeed').textContent = `${data.wind.speed} m/s`;
+      document.getElementById('pressure').textContent = `${data.main.pressure} hPa`;
+
+      // Visibility (API returns meters, convert to km)
+      const visibilityKm = (data.visibility / 1000).toFixed(1);
+      document.getElementById('visibility').textContent = `${visibilityKm} km`;
+
+      // Sunrise and Sunset
+      document.getElementById('sunrise').textContent = formatTime(data.sys.sunrise, data.timezone);
+      document.getElementById('sunset').textContent = formatTime(data.sys.sunset, data.timezone);
+
+      // Last updated timestamp
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('lastUpdated').textContent = `Last updated at ${timeStr}`;
+
+      // Show results
+      showOnly(weatherResult);
+    }
+
+    // ---- Event Listeners ----
+
+    searchForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      const city = cityInput.value.trim();
+      if (city) {
+        fetchWeather(city);
+      }
+    });
+
+    // Focus the input on page load
+    cityInput.focus();
+  </script>
+
+</body>
+</html>
